@@ -20,7 +20,7 @@ function monitor_ae2_items()
             local itemType = v.name .. "@" .. v.damage
             items_available:set(v.count, { itemType })
         end
-        sleep(30)
+        sleep(10)
     end
 end
 
