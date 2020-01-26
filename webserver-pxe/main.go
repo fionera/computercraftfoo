@@ -27,11 +27,14 @@ func main() {
 
 		_, err := os.Stat(script)
 		if label == "" || err != nil {
-			http.ServeFile(writer, request, "boot/general.lua")
+			http.ServeFile(writer, request, "scripts/no_label.lua")
 			return
 		}
 
 		http.ServeFile(writer, request, script)
+	})
+	router.HandleFunc("/init.lua", func(writer http.ResponseWriter, request *http.Request) {
+		http.ServeFile(writer, request, "scripts/init.lua")
 	})
 	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
