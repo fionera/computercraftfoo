@@ -1,5 +1,8 @@
 function require(url)
-    local response = http.get(url)
+    local response, err = http.get(url)
+    if not response then
+        printError(err)
+    end
     local responseData = response.readAll()
     response.close()
 

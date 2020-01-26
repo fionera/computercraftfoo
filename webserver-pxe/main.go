@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/gorilla/mux"
 	"github.com/valyala/fastjson"
@@ -17,7 +19,20 @@ func main() {
 	hub := newHub()
 	go hub.run()
 
-	router.Handle("/startup.lua", http.FileServer(http.Dir(".")))
+	router.HandleFunc("/startup.lua", func(writer http.ResponseWriter, request *http.Request) {
+		log.Println(request.URL.String())
+
+		label := request.URL.Query().Get("label")
+		script := path.Join("boot", label + ".lua")
+
+		_, err := os.Stat(script)
+		if label == "" || err != nil {
+			http.ServeFile(writer, request, "boot/general.lua")
+			return
+		}
+
+		http.ServeFile(writer, request, script)
+	})
 	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
