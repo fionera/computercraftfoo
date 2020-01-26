@@ -22,7 +22,7 @@ function Webserver.run()
         write(err)
     else
         for pattern, _ in pairs(self.handler) do
-            write("Registering " .. pattern)
+            write("Registering " .. pattern .. "\n")
             ws.send(json.encode({ cmd = "register", pattern = pattern }))
         end
 
