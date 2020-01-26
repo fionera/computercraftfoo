@@ -7,50 +7,26 @@ function require(url)
 end
 
 json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
+prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
+Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua")
 
-function runWebsocketConnection()
-    local ws, err = http.websocket("ws://dn42.fionera.de/ws")
-    if not ws then
-        write(err)
-    else
-        ws.send(json.encode({cmd = "register", pattern = "/"}))
+items_available = prometheus.gauge("items_available", "Items available in the AE2 Network", { "item_type" })
+function monitor_ae2_items()
+    local controller = peripheral.wrap("back")
 
-        while true do
-            local msg, err = ws.receive()
-            if not msg then
-                write("Error in Websocket Connection\n")
-                break
-            end
-
-            local decodedMsg = json.decode(msg)
-            local method = decodedMsg["method"]
-            local url = decodedMsg["url"]
-            local id = decodedMsg["id"]
-            local ip = decodedMsg["ip"]
-
-            write(ip .. " " .. method .. " " .. url .. "\n")
-
-            if url == "/" then
-                local response = ""
-                local items = controller.listAvailableItems()
-                for _, v in pairs(items) do
-                    response = response .. v.name .. " " .. v.count .. "\n"
-                end
-
-                ws.send(json.encode({cmd= "handle", id = id, response = response}))
-            end
+    while true do
+        local items = controller.listAvailableItems()
+        for _, v in pairs(items) do
+            local itemType = v.name .. "@" .. v.damage
+            items_available:set(v.count, { itemType })
         end
+        sleep(30)
     end
 end
 
-controller = peripheral.wrap("back")
+local webserver = Webserver("ws://dn42.fionera.de/ws")
+webserver.register("/metrics", prometheus.collect)
 
-runWebsocketConnection()
+parallel.waitForAny(monitor_ae2_items, webserver.run)
 
-write("End of code... Rebooting in 3 seconds")
-os.sleep(1)
-write(".")
-os.sleep(1)
-write(".")
-os.sleep(1)
 os.reboot()
