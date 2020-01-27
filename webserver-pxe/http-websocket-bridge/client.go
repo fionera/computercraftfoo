@@ -1,7 +1,6 @@
-package main
+package http_websocket_bridge
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,28 +12,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	hub *Hub
-
-	// The websocket connection.
+	hub  *Hub
 	conn *websocket.Conn
-
-	// Buffered channel of outbound messages.
 	send chan []byte
 }
 
-// readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	//c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
@@ -45,18 +33,10 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		handleWsMessage(c, message)
-		//c.hub.broadcast <- message
+		c.hub.handleWsMessage(c, message)
 	}
 }
 
-// writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -68,7 +48,6 @@ func (c *Client) writePump() {
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -79,10 +58,8 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
 				w.Write(<-c.send)
 			}
 
@@ -98,12 +75,18 @@ func (c *Client) writePump() {
 	}
 }
 
-var requestMap = make(map[string]*requestCycle)
+var requestMap = struct {
+	r   map[string]*requestCycle
+	mtx *sync.RWMutex
+}{
+	r:   make(map[string]*requestCycle),
+	mtx: &sync.RWMutex{},
+}
 
 type requestCycle struct {
 	writer  http.ResponseWriter
 	request *http.Request
-	mtx     *sync.WaitGroup
+	wg      *sync.WaitGroup
 }
 
 type Request struct {
@@ -129,11 +112,14 @@ func (c *Client) handle(writer http.ResponseWriter, request *http.Request) {
 
 	m := sync.WaitGroup{}
 	m.Add(1)
-	requestMap[r.Id] = &requestCycle{
+	requestMap.mtx.Lock()
+	requestMap.r[r.Id] = &requestCycle{
 		writer:  writer,
 		request: request,
-		mtx:     &m,
+		wg:      &m,
 	}
+	requestMap.mtx.Unlock()
+
 	defer func() {
 		if r := recover(); r != nil {
 			writer.WriteHeader(500)
@@ -141,8 +127,7 @@ func (c *Client) handle(writer http.ResponseWriter, request *http.Request) {
 			fmt.Println("Recovered: ", r)
 		}
 	}()
-	
+
 	c.send <- data
 	m.Wait()
-
 }

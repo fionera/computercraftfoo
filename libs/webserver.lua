@@ -1,4 +1,3 @@
-
 Webserver = {}
 function Webserver.__init__ (baseClass, url)
     self = { url = url, handler = {} }

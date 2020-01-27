@@ -10,4 +10,10 @@ end
 local responseData = response.readAll()
 response.close()
 
-loadstring(responseData)()
+code = loadstring(responseData)
+local ran, err = pcall( code )
+if not ran then
+    write(err)
+    sleep(10)
+    os.reboot()
+end

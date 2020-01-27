@@ -27,22 +27,35 @@ function monitor_ae2_items()
     end
 end
 
-fluids_available = prometheus.gauge("fluids_available", "Fluids available in the AE2 Network", { "fluid_type" })
-function monitor_ae2_fluids()
-    local controller = peripheral.wrap("back")
 
-    while true do
-        local items = controller.listAvailableFluids()
-        for _, v in pairs(items) do
-            fluids_available:set(v.amount, { v.id })
+
+function runBroadcastListener(msg)
+    local ws, err = http.websocket("ws://dn42.fionera.de/bc")
+    if not ws then
+        write(err)
+    else
+        self.websocket = ws
+        while true do
+            local msg, err = ws.receive()
+            if not msg then
+                write("Error in Websocket Connection\n")
+                break
+            end
+
+            local decodedMsg = json.decode(msg)
+            local method = decodedMsg["method"]
+
+
+            if method == "metrics" then
+
+            end
         end
-        sleep(10)
     end
 end
 
 local webserver = Webserver("ws://dn42.fionera.de/ws")
 webserver.register("/metrics", prometheus.collect)
 
-parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, webserver.run)
+parallel.waitForAny(monitor_ae2_items, webserver.run)
 
 os.reboot()
