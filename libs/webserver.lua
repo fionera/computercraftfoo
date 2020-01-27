@@ -42,7 +42,7 @@ function Webserver.run()
 
             for pattern, func in pairs(self.handler) do
                 if pattern == url then
-                    ws.send(json.encode({ cmd = "handle", id = id, response = func() }))
+                    ws.send(json.encode({ cmd = "handle", id = id, response = func(decodedMsg) }))
                     break
                 end
             end

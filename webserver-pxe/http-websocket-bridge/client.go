@@ -3,6 +3,7 @@ package http_websocket_bridge
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -94,15 +95,24 @@ type Request struct {
 	Method string `json:"method"`
 	Url    string `json:"url"`
 	Id     string `json:"id"`
+	Body   string `json:"body"`
 }
 
 func (c *Client) handle(writer http.ResponseWriter, request *http.Request) {
 	id := rand.Int()
+
+	body, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	r := Request{
 		IP:     request.RemoteAddr,
 		Method: request.Method,
 		Url:    request.URL.String(),
 		Id:     fmt.Sprintf("%d", id),
+		Body:   string(body),
 	}
 	data, err := json.Marshal(&r)
 	if err != nil {
