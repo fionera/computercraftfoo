@@ -106,6 +106,7 @@ func (c *Client) handle(writer http.ResponseWriter, request *http.Request) {
 		log.Println(err)
 		return
 	}
+	request.Body.Close()
 
 	r := Request{
 		IP:     request.RemoteAddr,
