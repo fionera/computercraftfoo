@@ -41,7 +41,7 @@ function monitor_ae2_fluids()
 end
 
 local webserver = Webserver("ws://dn42.fionera.de/ws")
-webserver.register("/metrics", prometheus.collect)
+webserver.register("/metrics/ae2", prometheus.collect)
 
 parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, webserver.run)
 
