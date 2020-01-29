@@ -21,8 +21,9 @@ function Broadcaster.send(channel, message)
     ws.send(json.encode({ channel = channel, message = message }))
 end
 
+ws = nil
 function Broadcaster.run()
-    local ws, err = http.websocket(self.url)
+    ws, err = http.websocket(self.url)
     if not ws then
         write(err)
     else

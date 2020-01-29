@@ -1,4 +1,4 @@
-function require(url, filename)
+function require(url)
     local response, err = http.get(url)
     if not response then
         write("Error on " .. url)
@@ -7,12 +7,12 @@ function require(url, filename)
     local responseData = response.readAll()
     response.close()
 
-    return loadstring(responseData, filename)()
+    return loadstring(responseData)()
 end
 
-json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua", "json.lua")
-prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua", "prometheus.lua")
-Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua", "broadcaster.lua")
+json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
+prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
+Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua")
 
 items_available = prometheus.gauge("items_available", "Items available in the AE2 Network", { "item_type" })
 function monitor_ae2_items()

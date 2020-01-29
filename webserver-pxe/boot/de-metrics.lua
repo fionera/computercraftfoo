@@ -11,7 +11,7 @@ end
 
 json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
 prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
-Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua", "broadcaster.lua")
+Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua")
 
 energy_stored = prometheus.gauge("energy_stored", "Energy stored in the Core")
 max_energy_stored = prometheus.gauge("max_energy_stored", "Max Energy stored in the Core")
