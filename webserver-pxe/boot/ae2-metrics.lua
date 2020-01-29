@@ -12,6 +12,7 @@ end
 
 json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
 prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
+Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua")
 Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua")
 
 items_available = prometheus.gauge("items_available", "Items available in the AE2 Network", { "item_type" })
@@ -41,15 +42,18 @@ function monitor_ae2_fluids()
     end
 end
 
+
 function onMetricRequest(message)
     if message.type == "collect" then
-        broadcast.send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
+        --broadcast.send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
     end
 end
-
 broadcast = Broadcaster("ws://dn42.fionera.de/bc")
 broadcast.register("metrics", onMetricRequest)
 
-parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, broadcast.run)
+local webserver = Webserver("ws://dn42.fionera.de/ws")
+webserver.register("/metrics/ae2", prometheus.collect)
+
+parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, webserver.run, broadcast.run)
 
 os.reboot()

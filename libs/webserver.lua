@@ -41,8 +41,8 @@ function Webserver.run()
 
             for pattern, func in pairs(self.handler) do
                 if pattern == url then
-                    local response, err = pcall(func, decodedMsg)
-                    if not response then
+                    local ok, response = pcall(func, decodedMsg)
+                    if not ok then
                         printError(err)
                     end
 
