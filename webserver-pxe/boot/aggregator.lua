@@ -17,14 +17,13 @@ Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfo
 
 function onMetricRequest(message)
     if message.type == "data" then
-        write("Got data from " .. message.name)
+        write("Got data from " .. message.name .. "\n")
         metricCache[message.name] = message.data
     end
 end
 
 function onHttpRequest()
     broadcast:send("metrics", {type = "collect"})
-    write("sent data")
 
     local data = ""
     for _, v in pairs(metricCache) do
@@ -44,7 +43,7 @@ function runBroadcaster()
 end
 
 webserver = Webserver.new("ws://dn42.fionera.de/ws")
-webserver.register("/metrics", onHttpRequest)
+webserver:register("/metrics", onHttpRequest)
 function runWebserver()
     return webserver:run()
 end

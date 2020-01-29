@@ -37,7 +37,6 @@ function Broadcaster:run()
                 break
             end
 
-            write("got " .. msg)
             local decodedMsg = json.decode(msg)
             local channel = decodedMsg.channel
             local message = decodedMsg.message

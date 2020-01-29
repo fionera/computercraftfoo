@@ -45,7 +45,7 @@ end
 
 function onMetricRequest(message)
     if message.type == "collect" then
-        broadcast:send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
+        broadcast:send("metrics", {type = "data", name = "ae2", data = prometheus.collect()})
     end
 end
 
@@ -57,7 +57,7 @@ function runBroadcaster()
 end
 
 webserver = Webserver.new("ws://dn42.fionera.de/ws")
-webserver.register("/metrics/ae2", prometheus.collect)
+webserver:register("/metrics/ae2", prometheus.collect)
 function runWebserver()
     return webserver:run()
 end

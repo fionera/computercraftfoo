@@ -30,7 +30,7 @@ end
 
 function onMetricRequest(message)
     if message.type == "collect" then
-        broadcast:send("metrics", {type = "data", name = "de", data = prometheus.collect})
+        broadcast:send("metrics", {type = "data", name = "de", data = prometheus.collect()})
     end
 end
 
