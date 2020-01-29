@@ -38,16 +38,14 @@ function Broadcaster.run()
             local message = decodedMsg.message
 
             local handler = self.handler[channel]
-            if not handler then
-                return
-            end
-
-            for _, f in pairs(self.handler[channel]) do
-                local ran, err = pcall(f, message)
-                if not ran then
-                    write(err)
+            if handler then
+                for _, f in pairs(self.handler[channel]) do
+                    local ran, err = pcall(f, message)
+                    if not ran then
+                        write(err)
+                    end
+                    break
                 end
-                break
             end
         end
     end
