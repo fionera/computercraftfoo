@@ -55,3 +55,5 @@ function Broadcaster:run()
         end
     end
 end
+
+return Broadcaster

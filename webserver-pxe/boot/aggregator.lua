@@ -43,7 +43,7 @@ function runBroadcaster()
     return broadcast:run()
 end
 
-webserver = Webserver("ws://dn42.fionera.de/ws")
+webserver = Webserver.new("ws://dn42.fionera.de/ws")
 webserver.register("/metrics", onHttpRequest)
 function runWebserver()
     return webserver:run()
