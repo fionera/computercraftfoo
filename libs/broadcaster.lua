@@ -45,7 +45,7 @@ function Broadcaster.run()
             for _, f in pairs(self.handler[channel]) do
                 local ran, err = pcall(f, message)
                 if not ran then
-                    printError(err)
+                    write(err)
                 end
                 break
             end
