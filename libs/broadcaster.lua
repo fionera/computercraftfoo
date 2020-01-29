@@ -34,8 +34,8 @@ function Broadcaster.run()
             end
 
             local decodedMsg = json.decode(msg)
-            local channel = decodedMsg["channel"]
-            local message = decodedMsg["message"]
+            local channel = decodedMsg.channel
+            local message = decodedMsg.message
 
             local handler = self.handler[channel]
             if not handler then
