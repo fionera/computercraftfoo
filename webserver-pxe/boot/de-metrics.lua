@@ -11,6 +11,7 @@ end
 
 json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
 prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
+Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua")
 Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua")
 
 energy_stored = prometheus.gauge("energy_stored", "Energy stored in the Core")
@@ -29,13 +30,23 @@ end
 
 function onMetricRequest(message)
     if message.type == "collect" then
-        broadcast.send("metrics", {type = "data", name = "de", data = prometheus.collect})
+        broadcast:send("metrics", {type = "data", name = "de", data = prometheus.collect})
     end
 end
 
-broadcast = Broadcaster("ws://dn42.fionera.de/bc")
-broadcast.register("metrics", onMetricRequest)
+broadcast = Broadcaster.new("ws://dn42.fionera.de/bc")
+broadcast:register("metrics", onMetricRequest)
+function runBroadcaster()
+    return broadcast:run()
+end
 
-parallel.waitForAny(monitor_power_core, broadcast.run)
+webserver = Webserver.new("ws://dn42.fionera.de/ws")
+webserver:register("/metrics/de", prometheus.collect)
+function runWebserver()
+    return webserver:run()
+end
+
+
+parallel.waitForAny(monitor_power_core, runBroadcaster, runWebserver)
 
 os.reboot()

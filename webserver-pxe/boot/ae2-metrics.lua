@@ -45,15 +45,23 @@ end
 
 function onMetricRequest(message)
     if message.type == "collect" then
-        --broadcast.send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
+        broadcast:send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
     end
 end
-broadcast = Broadcaster("ws://dn42.fionera.de/bc")
-broadcast.register("metrics", onMetricRequest)
 
-local webserver = Webserver("ws://dn42.fionera.de/ws")
+
+broadcast = Broadcaster.new("ws://dn42.fionera.de/bc")
+broadcast:register("metrics", onMetricRequest)
+function runBroadcaster()
+    return broadcast:run()
+end
+
+webserver = Webserver("ws://dn42.fionera.de/ws")
 webserver.register("/metrics/ae2", prometheus.collect)
+function runWebserver()
+    return webserver:run()
+end
 
-parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, webserver.run, broadcast.run)
+parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, runWebserver, runBroadcaster)
 
 os.reboot()

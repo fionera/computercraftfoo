@@ -1,20 +1,23 @@
-Webserver = {}
-function Webserver.__init__ (baseClass, url)
-    self = { url = url, handler = {} }
-    setmetatable(self, { __index = Webserver })
-    return self
-end
-setmetatable(Webserver, { __call = Webserver.__init__ })
+local Webserver = {}
+Webserver.__index = Webserver
 
-function Webserver.register(pattern, handler)
+function Webserver.new(url)
+    local obj = {}
+    setmetatable(obj, Webserver)
+    obj.url = url
+    obj.handler = {}
+    return obj
+end
+
+function Webserver:register(pattern, handler)
     self.handler[pattern] = handler
 end
 
-function Webserver.handle(pattern)
+function Webserver:handle(pattern)
     return self.handler[pattern]()
 end
 
-function Webserver.run()
+function Webserver:run()
     local ws, err = http.websocket(self.url)
     if not ws then
         write(err)
