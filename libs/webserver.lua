@@ -6,7 +6,6 @@ function Webserver.__init__ (baseClass, url)
 end
 setmetatable(Webserver, { __call = Webserver.__init__ })
 
-
 function Webserver.register(pattern, handler)
     self.handler[pattern] = handler
 end
@@ -42,7 +41,12 @@ function Webserver.run()
 
             for pattern, func in pairs(self.handler) do
                 if pattern == url then
-                    ws.send(json.encode({ cmd = "handle", id = id, response = func(decodedMsg) }))
+                    local response, err = pcall(func, decodedMsg)
+                    if not response then
+                        printError(err)
+                    end
+
+                    ws.send(json.encode({ cmd = "handle", id = id, response = response }))
                     break
                 end
             end

@@ -1,21 +1,22 @@
-function require(url)
+function require(url, filename)
     local response, err = http.get(url)
     if not response then
+        write("Error on " .. url)
         printError(err)
     end
     local responseData = response.readAll()
     response.close()
 
-    return loadstring(responseData)()
+    return loadstring(responseData, filename)()
 end
 
-json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
-prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
-Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua")
+json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua", "json.lua")
+prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua", "prometheus.lua")
+Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua", "broadcaster.lua")
 
 items_available = prometheus.gauge("items_available", "Items available in the AE2 Network", { "item_type" })
 function monitor_ae2_items()
-    local controller = peripheral.wrap("back")
+    local controller = peripheral.wrap("bottom")
 
     while true do
         local items = controller.listAvailableItems()
@@ -29,7 +30,7 @@ end
 
 fluids_available = prometheus.gauge("fluids_available", "Fluids available in the AE2 Network", { "fluid_type" })
 function monitor_ae2_fluids()
-    local controller = peripheral.wrap("back")
+    local controller = peripheral.wrap("bottom")
 
     while true do
         local items = controller.listAvailableFluids()
@@ -40,9 +41,15 @@ function monitor_ae2_fluids()
     end
 end
 
-local webserver = Webserver("ws://dn42.fionera.de/ws")
-webserver.register("/metrics/ae2", prometheus.collect)
+function onMetricRequest(message)
+    if message.type == "collect" then
+        broadcast.send("metrics", {type = "data", name = "ae2", data = prometheus.collect})
+    end
+end
 
-parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, webserver.run)
+broadcast = Broadcaster("ws://dn42.fionera.de/bc")
+broadcast.register("metrics", onMetricRequest)
+
+parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, broadcast.run)
 
 os.reboot()

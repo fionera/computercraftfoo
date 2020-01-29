@@ -1,60 +1,44 @@
-function require(url)
+function require(url, filename)
     local response, err = http.get(url)
     if not response then
+        write("Error on " .. url)
         printError(err)
     end
     local responseData = response.readAll()
     response.close()
 
-    return loadstring(responseData)()
+    return loadstring(responseData, filename)()
 end
 
-json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
-prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua")
-Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua")
+json = require("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua", "json.lua")
+prometheus = require("https://raw.githubusercontent.com/tarantool/prometheus/master/prometheus.lua", "prometheus.lua")
+Webserver = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/webserver.lua", "webserver.lua")
+Broadcaster = require("https://raw.githubusercontent.com/fionera/computercraftfoo/master/libs/broadcaster.lua", "broadcaster.lua")
 
-items_available = prometheus.gauge("items_available", "Items available in the AE2 Network", { "item_type" })
-function monitor_ae2_items()
-    local controller = peripheral.wrap("back")
-
-    while true do
-        local items = controller.listAvailableItems()
-        for _, v in pairs(items) do
-            local itemType = v.name .. "@" .. v.damage
-            items_available:set(v.count, { itemType })
-        end
-        sleep(10)
+function onMetricRequest(message)
+    if message.type == "data" then
+        metricCache[message.name] = data
     end
 end
 
+function onHttpRequest()
+    broadcast.send("metrics", {type = "collect"})
 
-
-function runBroadcastListener(msg)
-    local ws, err = http.websocket("ws://dn42.fionera.de/bc")
-    if not ws then
-        write(err)
-    else
-        self.websocket = ws
-        while true do
-            local msg, err = ws.receive()
-            if not msg then
-                write("Error in Websocket Connection\n")
-                break
-            end
-
-            local decodedMsg = json.decode(msg)
-            local method = decodedMsg["method"]
-
-
-            if method == "metrics" then
-
-            end
-        end
+    local data = ""
+    for _, v in pairs(metricCache) do
+        data = data .. v .. "\n"
     end
+    metricCache = {}
+
+    return data
 end
+
+metricCache = {}
+broadcast = Broadcaster("ws://dn42.fionera.de/bc")
+broadcast.register("metrics", onMetricRequest)
 
 local webserver = Webserver("ws://dn42.fionera.de/ws")
-webserver.register("/metrics", prometheus.collect)
+webserver.register("/metrics", onHttpRequest)
 
 parallel.waitForAny(monitor_ae2_items, webserver.run)
 
