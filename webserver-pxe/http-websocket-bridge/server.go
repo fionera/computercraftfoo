@@ -78,6 +78,18 @@ func (h *Hub) handleWsMessage(c *Client, message []byte) {
 			h.router.HandleFunc(pattern, c.handle).Name(pattern)
 		}
 
+	case "chunk":
+		id := string(value.GetStringBytes("id"))
+		log.Printf("Chunk for request `%s`\n", id)
+		requestMap.mtx.RLock()
+		w := requestMap.r[id]
+		requestMap.mtx.RUnlock()
+		if w == nil {
+			return
+		}
+
+		w.writer.Write(value.GetStringBytes("response"))
+
 	case "handle":
 		id := string(value.GetStringBytes("id"))
 		log.Printf("Handling request `%s`\n", id)
@@ -88,7 +100,6 @@ func (h *Hub) handleWsMessage(c *Client, message []byte) {
 			return
 		}
 
-		w.writer.Write(value.GetStringBytes("response"))
 		w.wg.Done()
 
 		requestMap.mtx.Lock()

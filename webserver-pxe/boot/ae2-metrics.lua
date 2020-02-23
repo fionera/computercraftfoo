@@ -42,13 +42,28 @@ function monitor_ae2_fluids()
     end
 end
 
-
 function onMetricRequest(message)
     if message.type == "collect" then
-        broadcast:send("metrics", {type = "data", name = "ae2", data = prometheus.collect()})
+        resetRestartTimer()
+
+        broadcast:send("metrics", { type = "data", name = "ae2", data = prometheus.collect() })
     end
 end
 
+restartTimer = os.startTimer(60)
+function runRestartTimer()
+    while true do
+        local event, timerNumber = os.pullEvent("timer")
+        if timerNumber == restartTimer then
+            os.reboot()
+        end
+    end
+end
+
+function resetRestartTimer()
+    os.cancelTimer(restartTimer)
+    restartTimer = os.startTimer(60)
+end
 
 broadcast = Broadcaster.new("ws://dn42.fionera.de/bc")
 broadcast:register("metrics", onMetricRequest)
@@ -56,12 +71,17 @@ function runBroadcaster()
     return broadcast:run()
 end
 
+function onHttpMetricRequest()
+    resetRestartTimer()
+    return prometheus.collect()
+end
+
 webserver = Webserver.new("ws://dn42.fionera.de/ws")
-webserver:register("/metrics/ae2", prometheus.collect)
+webserver:register("/metrics/ae2", onHttpMetricRequest)
 function runWebserver()
     return webserver:run()
 end
 
-parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, runWebserver, runBroadcaster)
+parallel.waitForAny(monitor_ae2_items, monitor_ae2_fluids, runWebserver, runBroadcaster, runRestartTimer)
 
 os.reboot()

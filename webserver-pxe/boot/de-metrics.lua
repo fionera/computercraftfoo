@@ -34,19 +34,39 @@ function onMetricRequest(message)
     end
 end
 
+restartTimer = os.startTimer(60)
+function runRestartTimer()
+    while true do
+        local event, timerNumber = os.pullEvent("timer")
+        if timerNumber == restartTimer then
+            os.reboot()
+        end
+    end
+end
+
+function resetRestartTimer()
+    os.cancelTimer(restartTimer)
+    restartTimer = os.startTimer(60)
+end
+
 broadcast = Broadcaster.new("ws://dn42.fionera.de/bc")
 broadcast:register("metrics", onMetricRequest)
 function runBroadcaster()
     return broadcast:run()
 end
 
+function onHttpMetricRequest()
+    resetRestartTimer()
+    return prometheus.collect()
+end
+
 webserver = Webserver.new("ws://dn42.fionera.de/ws")
-webserver:register("/metrics/de", prometheus.collect)
+webserver:register("/metrics/de", onHttpMetricRequest)
 function runWebserver()
     return webserver:run()
 end
 
 
-parallel.waitForAny(monitor_power_core, runBroadcaster, runWebserver)
+parallel.waitForAny(monitor_power_core, runBroadcaster, runWebserver, runRestartTimer)
 
 os.reboot()
